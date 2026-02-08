@@ -2,9 +2,24 @@ plugins {
     id 'com.android.application' version '8.7.3'
 }
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace 'com.gmail.mugcuposup.android'
     compileSdk 35
+
+    signingConfigs {
+        release {
+            storeFile file(keystoreProperties['storeFile'] ?: 'keystore.jks')
+            storePassword keystoreProperties['storePassword'] ?: ''
+            keyAlias keystoreProperties['keyAlias'] ?: ''
+            keyPassword keystoreProperties['keyPassword'] ?: ''
+        }
+    }
 
     defaultConfig {
         applicationId 'com.gmail.mugcuposup.android'
@@ -16,6 +31,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-project.txt'
         }
