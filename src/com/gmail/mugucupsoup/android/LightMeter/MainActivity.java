@@ -25,14 +25,17 @@ import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
+import android.os.Build;
 
 public class MainActivity extends LightMeterActivity implements SurfaceHolder.Callback {
 
@@ -44,6 +47,7 @@ public class MainActivity extends LightMeterActivity implements SurfaceHolder.Ca
 	int silentMode;
 
 	final int RESULT_SAVEIMAGE = 0;
+	static final int REQUEST_CAMERA_PERMISSION = 1;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +56,10 @@ public class MainActivity extends LightMeterActivity implements SurfaceHolder.Ca
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.camera_preview);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+		if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+			requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+		}
 
 		getWindow().setFormat(PixelFormat.UNKNOWN);
 		surfaceView = (SurfaceView) findViewById(R.id.camerapreview);
@@ -179,7 +187,24 @@ public class MainActivity extends LightMeterActivity implements SurfaceHolder.Ca
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		camera = Camera.open();
+		if (Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+			camera = Camera.open();
+		}
+	}
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+		if (requestCode == REQUEST_CAMERA_PERMISSION && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+			camera = Camera.open();
+			try {
+				camera.setPreviewDisplay(surfaceHolder);
+				camera.startPreview();
+				previewing = true;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@Override
